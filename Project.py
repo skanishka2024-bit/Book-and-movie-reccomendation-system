@@ -96,39 +96,57 @@ if option == "Movie ➜ Book":
 # ============================================================
 # Book -> Movie
 # ============================================================
+# ============================================================
+# Book -> Movie
+# ============================================================
 else:
     book = st.selectbox(
         "Select a Book",
         books_df["title"].tolist()
     )
+
     if st.button("Recommend Movies"):
+
         with st.spinner("Finding matching movies..."):
+
             book_index = books_df[books_df["title"] == book].index[0]
             book_vector = book_vectors[book_index]
 
-            # Same batch-prediction fix as above, mirrored for the
-            # book -> movie direction.
             repeated_book = np.repeat(
-                book_vector.reshape(1, -1), len(movie_vectors), axis=0
+                book_vector.reshape(1, -1),
+                len(movie_vectors),
+                axis=0
             )
-            features = np.concatenate([movie_vectors, repeated_book], axis=1)
+
+            features = np.concatenate(
+                (movie_vectors, repeated_book),
+                axis=1
+            )
+
+            # Debug
+            st.write("Feature Shape:", features.shape)
 
             predictions = dt_model.predict(features)
             probabilities = dt_model.predict_proba(features)[:, 1]
 
-            match_mask = predictions == 1
-            matched_titles = movies_df.loc[match_mask, "title"].tolist()
-            matched_scores = probabilities[match_mask]
+            st.write("Prediction Counts:", np.bincount(predictions))
+            st.write("First 20 Predictions:", predictions[:20])
 
-            recommendations = sorted(
-                zip(matched_titles, matched_scores),
-                key=lambda x: x[1],
-                reverse=True
-            )
+            recommendation_indices = np.where(predictions == 1)[0]
 
         st.subheader("🎬 Recommended Movies")
-        if len(recommendations) == 0:
+
+        if len(recommendation_indices) == 0:
             st.warning("No recommendations found.")
         else:
-            for title, score in recommendations[:10]:
-                st.success(f"{title}   |   Compatibility Score : {score:.2f}")
+
+            recommendation_scores = probabilities[recommendation_indices]
+
+            sorted_idx = np.argsort(recommendation_scores)[::-1]
+
+            for idx in sorted_idx[:10]:
+                movie_idx = recommendation_indices[idx]
+
+                st.success(
+                    f"{movies_df.iloc[movie_idx]['title']} | Score: {recommendation_scores[idx]:.2f}"
+                )
