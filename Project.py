@@ -19,6 +19,8 @@ def load_pickles():
     return movies_df, books_df, mlb
 
 movies_df, books_df, mlb = load_pickles()
+movies_df = movies_df.dropna(subset=["title"]).reset_index(drop=True)
+books_df = books_df.dropna(subset=["title"]).reset_index(drop=True)
 
 movie_vectors = mlb.transform(movies_df["genre_list"])
 book_vectors = mlb.transform(books_df["genre_list"])
